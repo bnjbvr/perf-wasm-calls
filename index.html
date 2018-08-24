@@ -1,0 +1,246 @@
+<head>
+    <style>
+    table {
+        width: 100%;
+    }
+    td:first-child {
+        width: 15%;
+    }
+    td:nth-child(2) {
+        width: 15%;
+    }
+    td:last-child {
+        width: 70%;
+    }
+    </style>
+</head>
+
+<body>
+    <p>
+        <label for="select">Number of iterations:</label>
+        <select id="select">
+            <option value="1000000">1 million</option>
+            <option value="10000000">10 millions</option>
+            <option selected value="100000000">100 millions</option>
+            <option value="200000000">200 millions</option>
+        </select>
+        <input id="showDescription" type="checkbox" checked>&nbsp;Show descriptions;
+    </p>
+    <p>
+        <input id="start" type="button" onclick="main()" disabled value="CALL ME MAYBE?" />
+        <input id="clean" type="button" onclick="clean()" disabled value="clean" />
+    </p>
+    <p id="status"></p>
+    <table id="results"></table>
+</body>
+
+<script>
+let exports = null;
+
+let $ = document.querySelector.bind(document);
+let $results = $('#results');
+
+let numRunning = 0;
+
+// Fetch the binary and compile the instance.
+(async () => {
+    let resp = await fetch('binary.wasm');
+    let binary = await resp.arrayBuffer();
+    let mod = new WebAssembly.Module(binary);
+    exports = new WebAssembly.Instance(mod).exports;
+
+    $('#start').disabled = false;
+    $('#clean').disabled = false;
+})();
+
+// Runs the test and displays it in the results table.
+function runTest(name, description, func) {
+    numRunning++;
+
+    setTimeout(() => {
+        let time = performance.now();
+        func();
+        time = performance.now() - time;
+        time = (time*100|0)/100;
+
+        let resultTr = document.createElement('tr');
+
+        let nameTd = document.createElement('td');
+        nameTd.innerHTML = `<strong>${name}</strong>`;
+        resultTr.appendChild(nameTd);
+
+        let timeTd = document.createElement('td');
+        timeTd.innerHTML = `${time} ms`;
+        resultTr.appendChild(timeTd);
+
+        if ($('#showDescription').checked) {
+            let descTd = document.createElement('td');
+            descTd.innerHTML = `${description}`;
+            resultTr.appendChild(descTd);
+        }
+
+        $results.appendChild(resultTr);
+
+        if (!--numRunning) {
+            $('#status').innerHTML = `Done!`;
+        }
+    }, 0);
+}
+
+// Benchmarks start here.
+function testCallKnownNoArgs() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.no_arg();
+    }
+}
+
+function testCallKnownOneArg() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.set_global_one(i);
+    }
+}
+
+function testCallKnownTwoArgs() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add(i, i + 1);
+    }
+}
+
+function testCallKnownTwoArgsRectifyingOne() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add(i + 1);
+    }
+}
+
+function jsAdd(x, y) {
+    return (x|0) + (y|0) | 0;
+}
+
+function testCallGeneric() {
+    var arr = [exports.add, jsAdd];
+    for (var i = 0; i < ITERATIONS; i++) {
+        arr[i%2](i, i+1);
+    }
+}
+
+function testCallGenericRectifying() {
+    var arr = [exports.add, jsAdd];
+    for (var i = 0; i < ITERATIONS; i++) {
+        arr[i%2](i+1);
+    }
+}
+
+function testCallScriptedGetter() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        GETSET.x;
+    }
+}
+
+function testCallScriptedGetterRectifying() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        GETSET_RECTIFIER.x
+    }
+}
+
+function testCallScriptedSetter() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        GETSET.x = i;
+    }
+}
+
+function testCallScriptedSetterRectifying() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        GETSET_RECTIFIER.x = i;
+    }
+}
+
+function testFunctionApplyArray() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add.apply(null, [i, i + 1]);
+    }
+}
+
+function testFunctionApplyArrayRectifying() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add.apply(null, [i + 1]);
+    }
+}
+
+function apply_args_wrapper() {
+    exports.add.apply(null, arguments);
+}
+function testFunctionApplyArgs() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        apply_args_wrapper(i, i + 1);
+    }
+}
+function testFunctionApplyArgsRectifying() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        apply_args_wrapper(i + 1);
+    }
+}
+
+function testFunctionCall() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add.call(null, i + 1);
+    }
+}
+function testFunctionCallRectifying() {
+    for (var i = 0; i < ITERATIONS; i++) {
+        exports.add.call(null, i + 1);
+    }
+}
+
+var ITERATIONS = 0;
+var GETSET = {};
+var GETSET_RECTIFIER = {};
+var firstRun = true;
+
+async function main() {
+    clean();
+
+    if (firstRun) {
+        Object.defineProperty(GETSET, 'x', {
+            get: exports.no_arg,
+            set: exports.set_global_one
+        });
+
+        Object.defineProperty(GETSET_RECTIFIER, 'x', {
+            get: exports.add,
+            set: exports.set_global_two
+        });
+        firstRun = false;
+    }
+
+    ITERATIONS = $('#select').value|0;
+
+    $('#status').innerHTML = `Running ${ITERATIONS} iterations...`;
+
+    runTest('call-known-0', 'Call a monomorphic function which expects 0 arguments with 0 arguments', testCallKnownNoArgs);
+    runTest('call-known-1', 'Call a monomorphic function which expects 1 argument with 1 argument', testCallKnownOneArg);
+    runTest('call-known-2', 'Call a monomorphic function which expects 2 arguments with 2 arguments', testCallKnownTwoArgs);
+    runTest('call-known-2-r', 'Call a monomorphic function which expects 2 arguments with 1 argument', testCallKnownTwoArgsRectifyingOne);
+
+    runTest('call-generic-2', 'Alternate between a JS function call and a wasm function, with 2 arguments (both expect 2 arguments)', testCallGeneric);
+    runTest('call-generic-2-r', 'Alternate between a JS function call and a wasm function, with 1 argument (both expect 2 arguments)', testCallGenericRectifying);
+
+    runTest('scripted-getter-0', "Call a scripted getter that's a wasm function expecting 0 arguments", testCallScriptedGetter);
+    runTest('scripted-getter-1', "Call a scripted getter that's a wasm function expecting 1 argument", testCallScriptedGetterRectifying);
+
+    runTest('scripted-setter-1', "Call a scripted setter that's a wasm function expecting 1 argument", testCallScriptedSetter);
+    runTest('scripted-setter-2', "Call a scripted setter that's a wasm function expecting 2 arguments", testCallScriptedSetterRectifying);
+
+    runTest('F.p.apply-array', 'Call a wasm function with Function.prototype.apply and an array, with the expected number of arguments', testFunctionApplyArray);
+    runTest('F.p.apply-array-r', 'Call a wasm function with Function.prototype.apply and an array, with one fewer argument than expected', testFunctionApplyArrayRectifying);
+    runTest('F.p.apply-args', 'Call a wasm function with Function.prototype.apply and the arguments object, with the expected number of arguments', testFunctionApplyArgs);
+    runTest('F.p.apply-args-r', 'Call a wasm function with Function.prototype.apply and the arguments object, with one fewer argument than expected', testFunctionApplyArgsRectifying);
+
+    runTest('F.p.call', 'Call a wasm function with Function.prototype.call and the expected number of arguments', testFunctionCall);
+    runTest('F.p.call-r', 'Call a wasm function with Function.prototype.call and one fewer argument than expected', testFunctionCallRectifying);
+}
+
+function clean() {
+    $('#results').innerHTML = '';
+}
+
+</script>
