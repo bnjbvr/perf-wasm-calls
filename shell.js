@@ -155,6 +155,7 @@ function start() {
     ITERATIONS = 200000000;
 
     console.log(`Running ${ITERATIONS} iterations...`);
+    runTest('warmup', 'Warming up the JITs...', testCallKnownNoArgs);
 
     runTest('call-known-0', 'Call a monomorphic function which expects 0 arguments with 0 arguments', testCallKnownNoArgs);
     runTest('call-known-1', 'Call a monomorphic function which expects 1 argument with 1 argument', testCallKnownOneArg);

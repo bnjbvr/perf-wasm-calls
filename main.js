@@ -193,6 +193,8 @@ function start() {
     $('#status').innerHTML = `Running ${ITERATIONS} iterations...`;
 
     enableButtons(false);
+    runTest('warmup', 'Warming up the JITs...', testCallKnownNoArgs);
+
     runTest('call-known-0', 'Call a monomorphic function which expects 0 arguments with 0 arguments', testCallKnownNoArgs);
     runTest('call-known-1', 'Call a monomorphic function which expects 1 argument with 1 argument', testCallKnownOneArg);
     runTest('call-known-2', 'Call a monomorphic function which expects 2 arguments with 2 arguments', testCallKnownTwoArgs);
