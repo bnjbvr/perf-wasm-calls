@@ -1,38 +1,31 @@
+<html>
 <head>
-    <style>
-    table {
-        width: 100%;
-    }
-    td:first-child {
-        width: 15%;
-    }
-    td:nth-child(2) {
-        width: 15%;
-    }
-    td:last-child {
-        width: 70%;
-    }
-    </style>
+    <link href="superstylin.css" rel="stylesheet" media="all" type="text/css">
 </head>
 
 <body>
+    <h1>Call me maybe?</h1>
     <p>
         <label for="select">Number of iterations:</label>
-        <select id="select">
+        <select class="u-full-width" id="select">
             <option value="1000000">1 million</option>
             <option value="10000000">10 millions</option>
             <option selected value="100000000">100 millions</option>
             <option value="200000000">200 millions</option>
         </select>
-        <input id="showDescription" type="checkbox" checked>
-        <label for="showDescription">&nbsp;Show descriptions</label>
     </p>
     <p>
-        <input id="start" type="button" disabled value="call me maybe" />
-        <input id="clean" type="button" disabled value="clean" />
+        <label for="showDescription">
+            <input id="showDescription" type="checkbox" checked>
+            &nbsp;Show descriptions
+        </label>
+    </p>
+    <p>
+        <input id="start" class="button-primary" type="button" disabled value="Run" />
+        <input id="clean" type="button" disabled value="Clean" />
     </p>
     <p id="status"></p>
     <table id="results"></table>
+    <script src="./main.js"></script>
 </body>
-
-<script src="./main.js"></script>
+</html>

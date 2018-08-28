@@ -33,7 +33,7 @@ function runTest(name, description, func) {
 
         let descTd = document.createElement('td');
         descTd.innerHTML = `${description}`;
-        descTd.style.display = $('#showDescription').checked ? 'initial' : 'none';
+        descTd.style.display = $('#showDescription').checked ? '' : 'none';
         resultTr.appendChild(descTd);
 
         $results.appendChild(resultTr);
@@ -221,7 +221,7 @@ function start() {
 function displayDescription() {
     let enabled = $('#showDescription').checked;
     for (let node of $$('#results td:last-child')) {
-        node.style.display = enabled ? 'initial' :  'none';
+        node.style.display = enabled ? '' :  'none';
     }
 }
 
