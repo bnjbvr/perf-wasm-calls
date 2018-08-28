@@ -29,6 +29,21 @@ let binary = wasmTextToBinary(`
     (func (export "glob") (result i32)
      get_global $g
     )
+
+    (func (export "if_add") (result i32) (param i32) (param i32)
+     get_local 0
+     i32.const 1
+     i32.add
+     i32.const 0
+     i32.ne
+     if
+        get_local 0
+        get_local 1
+        i32.add
+        return
+     end
+     get_local 0
+    )
 )
 `);
 

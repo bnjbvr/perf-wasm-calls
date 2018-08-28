@@ -180,6 +180,20 @@ function testFunctionCallRectifying(limit) {
     }
 }
 
+function testIfAddJS(limit) {
+    var func = nonInlinedJSAdd; // provided in non-inlined-function.js
+    for (var i = 0; i < limit; i++) {
+        func(i, i+1);
+    }
+}
+
+function testIfAddWasm(limit) {
+    var func = exports.if_add;
+    for (var i = 0; i < limit; i++) {
+        func(i, i+1);
+    }
+}
+
 var ITERATIONS = 0;
 
 function clean() {
@@ -216,6 +230,9 @@ function start() {
 
     runTest('F.p.call', 'Call a wasm function with Function.prototype.call and the expected number of arguments', testFunctionCall);
     runTest('F.p.call-r', 'Call a wasm function with Function.prototype.call and one fewer argument than expected', testFunctionCallRectifying);
+
+    runTest('if-add-wasm', `Call a wasm function that does <code>if (arg_i32+1 != 0) return arg_i32+other_arg_i32; // else is unreachable</code>`, testIfAddWasm);
+    runTest('if-add-js', `Call a JS function that shouldn't get inlined and does: <code>if (a+1) return (a|0)+(b|0)|0; // else is unreachable</code>`, testIfAddJS);
 }
 
 function displayDescription() {
