@@ -46,6 +46,14 @@ function runTest(name, description, func) {
 }
 
 // Benchmarks start here.
+function testMathBuiltin(limit) {
+    exports.cos(limit);
+}
+
+function testCallFromWasm(limit) {
+    exports.calljs(limit);
+}
+
 function testCallKnownNoArgs(limit) {
     var func = exports.no_arg;
     for (var i = 0; i < limit; i++) {
@@ -209,6 +217,9 @@ function start() {
     enableButtons(false);
     runTest('warmup', 'Warming up the JITs...', testCallKnownNoArgs);
 
+    runTest('math-builtin', 'Wasm calls into the JS Math.cos builtin in a loop', testMathBuiltin);
+    runTest('wasm-to-js', 'Wasm calls into a JS function that expects 2 args in a loop', testCallFromWasm);
+
     runTest('call-known-0', 'Call a monomorphic function which expects 0 arguments with 0 arguments', testCallKnownNoArgs);
     runTest('call-known-1', 'Call a monomorphic function which expects 1 argument with 1 argument', testCallKnownOneArg);
     runTest('call-known-2', 'Call a monomorphic function which expects 2 arguments with 2 arguments', testCallKnownTwoArgs);
@@ -251,10 +262,19 @@ function enableButtons(enabled) {
 (async () => {
     $('#status').innerHTML = `Waiting for WebAssembly fetch and compilation...`;
 
+    let imports = {
+        Math: {
+            cos: Math.cos
+        },
+        glob: {
+            jsAdd
+        }
+    };
+
     let resp = await fetch('binary.wasm');
     let binary = await resp.arrayBuffer();
     let mod = new WebAssembly.Module(binary);
-    exports = new WebAssembly.Instance(mod).exports;
+    exports = new WebAssembly.Instance(mod, imports).exports;
 
     $('#status').innerHTML = `Ready for benchmarking!`;
 

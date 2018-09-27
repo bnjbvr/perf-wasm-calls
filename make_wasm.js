@@ -1,5 +1,46 @@
 let binary = wasmTextToBinary(`
 (module
+    (import $Math_cos "Math" "cos" (result f32) (param f32))
+    (import $js_import "glob" "jsAdd" (result i32) (param i32) (param i32))
+
+    (func (export "cos") (param $i i32)
+     loop $top
+       get_local $i
+       f32.reinterpret/i32
+       call $Math_cos
+       drop
+
+       get_local $i
+       i32.const 1
+       i32.sub
+       tee_local $i
+       i32.const 0
+       i32.ne
+       if
+        br $top
+       end
+     end
+    )
+
+    (func (export "calljs") (param $i i32)
+     loop $top
+       get_local $i
+       get_local $i
+       call $js_import
+       drop
+
+       get_local $i
+       i32.const 1
+       i32.sub
+       tee_local $i
+       i32.const 0
+       i32.ne
+       if
+        br $top
+       end
+     end
+    )
+
     (func (export "add") (result i32) (param i32) (param i32)
      get_local 0
      get_local 1
